@@ -6,13 +6,11 @@ import (
 	"log"
 	"net/http"
 
-	// "github.com/mattn/go-sqlite3"
-
-	"time"
+	_ "github.com/mattn/go-sqlite3"
 	// "github.com/gorilla/sessions"
 )
 
-// var database =
+var db *sql.DB
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/hello" {
@@ -47,6 +45,14 @@ func signinHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Name = %s\n", name)
 	fmt.Fprintf(w, "password = %s\n", password)
 	fmt.Fprintf(w, "email = %s\n", email)
+	stmt, err := db.Prepare("INSERT INTO user(name, email, password) values(?,?,?)")
+	checkErr(err)
+	res, err := stmt.Exec(name, email, password)
+	checkErr(err)
+	id, err := res.LastInsertId()
+	checkErr(err)
+
+	fmt.Println(id)
 }
 
 func formHandler(w http.ResponseWriter, r *http.Request) {
@@ -69,6 +75,9 @@ func checkErr(err error) {
 }
 
 func main() {
+	db, err := sql.Open("sqlite3", "./data.db")
+	checkErr(err)
+
 	fileServer := http.FileServer(http.Dir("../front")) // New code
 	http.Handle("/", fileServer)                        // New code
 	http.HandleFunc("/hello", helloHandler)
@@ -80,63 +89,62 @@ func main() {
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
-
-	db, err := sql.Open("sqlite3", "./foo.db")
-	checkErr(err)
-
-	// insert
-	stmt, err := db.Prepare("INSERT INTO userinfo(username, departname, created) values(?,?,?)")
-	checkErr(err)
-
-	res, err := stmt.Exec("astaxie", "研发部门", "2012-12-09")
-	checkErr(err)
-
-	id, err := res.LastInsertId()
-	checkErr(err)
-
-	fmt.Println(id)
-	// update
-	stmt, err = db.Prepare("update userinfo set username=? where uid=?")
-	checkErr(err)
-
-	res, err = stmt.Exec("astaxieupdate", id)
-	checkErr(err)
-
-	affect, err := res.RowsAffected()
-	checkErr(err)
-
-	fmt.Println(affect)
-
-	// query
-	rows, err := db.Query("SELECT * FROM userinfo")
-	checkErr(err)
-	var uid int
-	var username string
-	var department string
-	var created time.Time
-
-	for rows.Next() {
-		err = rows.Scan(&uid, &username, &department, &created)
-		checkErr(err)
-		fmt.Println(uid)
-		fmt.Println(username)
-		fmt.Println(department)
-		fmt.Println(created)
-	}
-
-	rows.Close() //good habit to close
-
-	// delete
-	stmt, err = db.Prepare("delete from userinfo where uid=?")
-	checkErr(err)
-
-	res, err = stmt.Exec(id)
-	checkErr(err)
-
-	affect, err = res.RowsAffected()
-	checkErr(err)
-
-	fmt.Println(affect)
-
 	db.Close()
 }
+
+// insert
+// 	stmt, err := db.Prepare("INSERT INTO user(name, email, created) values(?,?,?)")
+// 	checkErr(err)
+
+// 	res, err := stmt.Exec("astaxie", "研发部门", "2012-12-09")
+// 	checkErr(err)
+
+// 	id, err := res.LastInsertId()
+// 	checkErr(err)
+
+// 	fmt.Println(id)
+// 	// update
+// 	stmt, err = db.Prepare("update userinfo set username=? where uid=?")
+// 	checkErr(err)
+
+// 	res, err = stmt.Exec("astaxieupdate", id)
+// 	checkErr(err)
+
+// 	affect, err := res.RowsAffected()
+// 	checkErr(err)
+
+// 	fmt.Println(affect)
+
+// 	// query
+// 	rows, err := db.Query("SELECT * FROM userinfo")
+// 	checkErr(err)
+// 	var uid int
+// 	var username string
+// 	var department string
+// 	var created time.Time
+
+// 	for rows.Next() {
+// 		err = rows.Scan(&uid, &username, &department, &created)
+// 		checkErr(err)
+// 		fmt.Println(uid)
+// 		fmt.Println(username)
+// 		fmt.Println(department)
+// 		fmt.Println(created)
+// 	}
+
+// 	rows.Close() //good habit to close
+
+// 	// delete
+// 	stmt, err = db.Prepare("delete from userinfo where uid=?")
+// 	checkErr(err)
+
+// 	res, err = stmt.Exec(id)
+// 	checkErr(err)
+
+// 	affect, err = res.RowsAffected()
+// 	checkErr(err)
+
+// 	fmt.Println(affect)
+
+// 	db.Close()
+// }
